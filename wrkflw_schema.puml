@@ -1,0 +1,52 @@
+@startuml
+' Use simple skinparams for better compatibility with older JAR versions
+skinparam Shadowing false
+skinparam MonospacedFont "Courier"
+
+title EuroRoute-IO: Sovereign Green Logistics Architecture
+
+actor "User" as User
+
+box "AWS Cloud (Stateless / US)" #FFF3E0
+    participant "API Gateway" as AGW
+    participant "Lambda (EU-Region)" as Lambda
+end box
+
+box "OVHcloud (Sovereign / FR)" #E8F5E9
+    participant "OVH KMS" as KMS
+    participant "OVH S3 Logs" as Logs
+end box
+
+box "PolyAPI / Hetzner" #F3E5F5
+    participant "PolyRunner" as Poly
+end box
+
+box "External APIs" #ECEFF1
+    collections "DHL/Climatiq" as APIs
+end box
+
+box "EU Data Fortress" #E1F5FE
+    database "Aiven DB (DE)" as DB
+    database "UpCloud Redis" as Cache
+end box
+
+' Flow Logic
+User -> AGW : 1. Request
+AGW -> Lambda : 2. Trigger
+Lambda -> KMS : 3. Decrypt Keys
+KMS -> Lambda : 4. Sovereign Keys
+
+Lambda -> Poly : 5. Orchestrate
+Poly -> APIs : 6. API Calls
+APIs -> Poly : 7. Raw Data
+Poly -> Poly : 8. Mapping
+
+Poly -> Lambda : 9. Unified Payload
+Lambda -> DB : 10. Save Data
+Lambda -> Cache : 11. Cache Session
+Lambda -> Logs : 12. Write Logs
+
+DB -> Lambda : 13. Confirm
+Lambda -> User : 14. Response JSON
+
+@enduml

@@ -1,0 +1,4 @@
+@startuml
+title Test Connection
+[User] -> [OVHcloud KMS] : Get Key
+@enduml
