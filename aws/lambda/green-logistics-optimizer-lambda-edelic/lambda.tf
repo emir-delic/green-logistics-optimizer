@@ -1,3 +1,7 @@
+variable "aws_account_id" {}
+variable "api_id" {}
+variable "root_resource_id" {}
+
 # 1. IAM Role for THIS specific function
 resource "aws_iam_role" "lambda_role" {
   name = "green-logistics-optimizer-lambda-role-edelic"

@@ -4,10 +4,6 @@ resource "aws_api_gateway_rest_api" "logistics_api" {
   endpoint_configuration { types = ["REGIONAL"] }
 }
 
-# Export the ID so Lambdas can attach to it
-output "api_id" { value = aws_api_gateway_rest_api.logistics_api.id }
-output "root_resource_id" { value = aws_api_gateway_rest_api.logistics_api.root_resource_id }
-
 # The Snapshot
 resource "aws_api_gateway_deployment" "deployment" {
   rest_api_id = aws_api_gateway_rest_api.logistics_api.id
@@ -40,4 +36,12 @@ resource "aws_api_gateway_integration" "lambda_integration" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY" # CRITICAL for your index.js parsing
   uri                     = aws_lambda_function.optimizer.invoke_arn
+}
+
+output "api_id" {
+  value = aws_api_gateway_rest_api.logistics_api.id
+}
+
+output "root_resource_id" {
+  value = aws_api_gateway_rest_api.logistics_api.root_resource_id
 }

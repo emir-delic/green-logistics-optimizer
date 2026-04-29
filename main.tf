@@ -1,5 +1,7 @@
+# main.tf in the project root
+
 provider "aws" {
-  region = "eu-central-1" # Enforce EU boundary
+  region = "eu-central-1"
 }
 
 variable "aws_account_id" {
@@ -7,5 +9,16 @@ variable "aws_account_id" {
   sensitive = true
 }
 
-# This data source allows sub-files to reference your Account ID automatically
-data "aws_caller_identity" "current" {}
+# 1. Include the API Gateway Folder
+module "api" {
+  source = "./aws/api"
+}
+
+# 2. Include the Lambda Folder
+module "green_logistics_lambda" {
+  source         = "./aws/lambda/green-logistics-optimizer-edelic"
+  # Pass variables needed by the lambda.tf file
+  aws_account_id = var.aws_account_id
+  api_id         = module.api.api_id
+  root_resource_id = module.api.root_resource_id
+}
