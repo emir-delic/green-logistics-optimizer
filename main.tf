@@ -35,3 +35,8 @@ module "green_logistics_lambda" {
   api_id           = module.api.api_id
   root_resource_id = module.api.root_resource_id
 }
+
+output "final_api_endpoint" {
+  value       = module.api.invoke_url
+  description = "The public URL to trigger the Green Logistics Optimizer"
+}

@@ -10,6 +10,9 @@ resource "aws_api_gateway_rest_api" "logistics_api" {
   endpoint_configuration { 
     types = ["REGIONAL"] 
   }
+  tags = {
+    aws_cert_developer = "emir.delic"
+  }
 }
 
 # 2. Add the missing resource (the URL path /calculate-route)

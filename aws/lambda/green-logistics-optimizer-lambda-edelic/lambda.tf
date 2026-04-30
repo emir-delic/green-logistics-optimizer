@@ -45,6 +45,10 @@ resource "aws_lambda_function" "optimizer" {
       NODE_ENV = "production"
     }
   }
+
+  tags = {
+    aws_cert_developer = "emir.delic"
+  }
 }
 
 # 4. Grant API Gateway permission to invoke this Lambda
