@@ -46,7 +46,8 @@ export const handler = async (event) => {
             "data_residency": {
                 "orchestrated_by": "PolyAPI (Hetzner/DE)",
                 "stored_in": "Aiven-PostgreSQL (Hetzner/DE)",
-                "jurisdiction": "EU-Sovereign Data Fortress"
+                "jurisdiction": "EU-Sovereign Data Fortress",
+                "testing": "testing changes"
             }
         };
 
