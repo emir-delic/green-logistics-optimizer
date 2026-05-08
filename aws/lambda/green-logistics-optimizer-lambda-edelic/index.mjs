@@ -1,5 +1,5 @@
-import poly from 'polyapi'; 
-// No relative path needed anymore because it's in the local node_modules!
+import polyapi from 'polyapi';
+const poly = polyapi.default || polyapi;
 
 export const handler = async (event) => {
     try {

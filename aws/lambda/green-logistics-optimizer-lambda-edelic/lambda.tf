@@ -26,7 +26,8 @@ resource "aws_iam_role_policy_attachment" "basic" {
 data "archive_file" "zip" {
   type        = "zip"
   source_dir  = "${path.module}"
-  excludes    = ["lambda.tf", "poly_sdk_layer.zip"] 
+  # Do NOT use any excludes that might hit hidden files
+  excludes    = ["lambda.tf"] 
   output_path = "${path.module}/../../files/optimizer.zip"
 }
 
