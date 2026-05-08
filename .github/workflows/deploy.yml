@@ -39,8 +39,16 @@ jobs:
         run: |
           npm install polyapi@eu1
           npx poly generate
-          mkdir -p aws/lambda/green-logistics-optimizer-lambda-edelic/node_modules/
-          cp -r node_modules/polyapi aws/lambda/green-logistics-optimizer-lambda-edelic/node_modules/
+          
+          # Create the destination
+          mkdir -p aws/lambda/green-logistics-optimizer-lambda-edelic/node_modules/polyapi
+          
+          # Use 'cp -a' to preserve all attributes and hidden files/folders
+          # We copy the CONTENTS of node_modules/polyapi to the destination
+          cp -a node_modules/polyapi/. aws/lambda/green-logistics-optimizer-lambda-edelic/node_modules/polyapi/
+          
+          # Debug: Verify the hidden .poly folder exists in the destination
+          ls -la aws/lambda/green-logistics-optimizer-lambda-edelic/node_modules/polyapi/
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
