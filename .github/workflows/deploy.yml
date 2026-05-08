@@ -38,8 +38,17 @@ jobs:
           POLY_API_BASE_URL: https://eu1.polyapi.io
         run: |
           npm install polyapi@eu1
-          # Generate the SDK based on the env variables above
           npx poly generate
+          
+          # 1. Create a clean staging area for the layer
+          mkdir -p layer_staging/nodejs
+          
+          # 2. Move the node_modules into the staging area
+          # This ensures the ZIP has the structure: nodejs/node_modules/polyapi
+          cp -r node_modules layer_staging/nodejs/
+          
+          # 3. List the directory to verify in logs (Debugging)
+          ls -R layer_staging/nodejs/node_modules/polyapi
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
