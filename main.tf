@@ -22,6 +22,10 @@ variable "aws_account_id" {
   type      = string
   sensitive = true
 }
+variable "poly_api_key" {
+  type      = string
+  sensitive = true
+}
 
 # --- Module Orchestration ---
 module "api" {
@@ -34,6 +38,7 @@ module "green_logistics_lambda" {
   aws_account_id   = var.aws_account_id
   api_id           = module.api.api_id
   root_resource_id = module.api.root_resource_id
+  poly_api_key     = var.poly_api_key
 }
 
 output "final_api_endpoint" {

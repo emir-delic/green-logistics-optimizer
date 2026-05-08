@@ -2,6 +2,10 @@
 variable "aws_account_id" {}
 variable "api_id" {}
 variable "root_resource_id" {}
+variable "poly_api_key" {
+  type      = string
+  sensitive = true
+}
 
 # 1. IAM Role for THIS specific function
 resource "aws_iam_role" "lambda_role" {
@@ -23,14 +27,28 @@ resource "aws_iam_role_policy_attachment" "basic" {
 }
 
 # 3. Zip and Function Definition
-data "archive_file" "zip" {
+# 3a. Create the PolyAPI SDK Layer
+data "archive_file" "poly_sdk_zip" {
   type        = "zip"
-  source_dir  = "${path.module}"
-  # Exclude terraform files from the zip to keep the Lambda clean
-  excludes    = ["lambda.tf"] 
-  output_path = "${path.module}/../../files/optimizer.zip"
+  output_path = "${path.module}/poly_sdk_layer.zip"
+
+  # AWS Layers require node_modules to be inside a /nodejs/ directory
+  source {
+    content  = " " 
+    filename = "nodejs/keep" 
+  }
+
+  # This grabs your root polyapi installation
+  source_dir = "${path.cwd}/node_modules/polyapi"
 }
 
+resource "aws_lambda_layer_version" "poly_sdk" {
+  filename            = data.archive_file.poly_sdk_zip.output_path
+  layer_name          = "poly_sdk_layer"
+  compatible_runtimes = ["nodejs20.x"]
+}
+
+# 3b. Update Function Definition
 resource "aws_lambda_function" "optimizer" {
   function_name = "green-logistics-optimizer-lambda-edelic"
   role          = aws_iam_role.lambda_role.arn
@@ -39,10 +57,13 @@ resource "aws_lambda_function" "optimizer" {
   filename      = data.archive_file.zip.output_path
   source_code_hash = data.archive_file.zip.output_base64sha256
 
-  # Ensure processing stays in EU-Central-1
+  # ATTACH THE LAYER
+  layers = [aws_lambda_layer_version.poly_sdk.arn]
+
   environment {
     variables = {
-      NODE_ENV = "production"
+      NODE_ENV     = "production"
+      POLY_API_KEY = var.poly_api_key # The Handshake Secret
     }
   }
 
