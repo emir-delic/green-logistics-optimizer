@@ -37,22 +37,24 @@ jobs:
           POLY_API_KEY: ${{ secrets.POLY_API_KEY }}
           POLY_API_BASE_URL: https://eu1.polyapi.io
         run: |
+          # 1. Standard Install & Generate
           npm install polyapi@eu1
           npx poly generate
           
-          # Define the target path
+          # 2. Define the exact target inside the Lambda folder
           TARGET_DIR="aws/lambda/green-logistics-optimizer-lambda-edelic/node_modules/polyapi"
           mkdir -p "$TARGET_DIR"
           
-          # 1. Copy the standard files
+          # 3. Copy the package files from the root node_modules
           cp -r node_modules/polyapi/* "$TARGET_DIR/"
           
-          # 2. EXPLICITLY copy the hidden .poly folder (the brain of the SDK)
-          cp -r node_modules/polyapi/.poly "$TARGET_DIR/"
+          # 4. CRITICAL: Copy the hidden .poly folder from the PROJECT ROOT 
+          # This is where 'poly generate' actually places the logic.
+          cp -r .poly "$TARGET_DIR/"
           
-          # 3. VERIFICATION (Look for '.poly' in your GitHub Action logs)
-          echo "Verifying folder contents:"
-          ls -la "$TARGET_DIR"
+          # 5. Verification
+          echo "Checking if .poly exists in the Lambda folder:"
+          ls -la "$TARGET_DIR/.poly"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
