@@ -28,16 +28,6 @@ data "archive_file" "zip" {
   source_dir  = "${path.module}"
   excludes    = ["lambda.tf", "poly_sdk_layer.zip"] 
   output_path = "${path.module}/../../files/optimizer.zip"
-
-  # MANUALLY INJECT the generated SDK into the function zip
-  source {
-    content  = file("${path.cwd}/node_modules/polyapi/index.js")
-    filename = "node_modules/polyapi/index.js"
-  }
-  source {
-    content  = file("${path.cwd}/node_modules/polyapi/package.json")
-    filename = "node_modules/polyapi/package.json"
-  }
 }
 
 resource "aws_lambda_function" "optimizer" {
@@ -49,13 +39,15 @@ resource "aws_lambda_function" "optimizer" {
   filename         = data.archive_file.zip.output_path
   source_code_hash = data.archive_file.zip.output_base64sha256
 
-  # REMOVE the layers = [...] line here to keep it simple
-
   environment {
     variables = {
       NODE_ENV     = "production"
       POLY_API_KEY = var.poly_api_key
     }
+  }
+
+  tags = {
+    aws_cert_developer = "emir.delic"
   }
 }
 

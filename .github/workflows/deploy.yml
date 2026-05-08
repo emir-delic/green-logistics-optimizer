@@ -39,16 +39,8 @@ jobs:
         run: |
           npm install polyapi@eu1
           npx poly generate
-          
-          # 1. Create a clean staging area for the layer
-          mkdir -p layer_staging/nodejs
-          
-          # 2. Move the node_modules into the staging area
-          # This ensures the ZIP has the structure: nodejs/node_modules/polyapi
-          cp -r node_modules layer_staging/nodejs/
-          
-          # 3. List the directory to verify in logs (Debugging)
-          ls -R layer_staging/nodejs/node_modules/polyapi
+          mkdir -p aws/lambda/green-logistics-optimizer-lambda-edelic/node_modules/
+          cp -r node_modules/polyapi aws/lambda/green-logistics-optimizer-lambda-edelic/node_modules/
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
