@@ -1,4 +1,5 @@
 import polyapi from 'polyapi';
+
 const poly = polyapi.default || polyapi;
 
 export const handler = async (event) => {
@@ -6,6 +7,11 @@ export const handler = async (event) => {
         const body = event.body ? JSON.parse(event.body) : {};
         const { origin, destination, weight_kg } = body;
 
+        if (!origin || !destination) {
+            return { statusCode: 400, body: JSON.stringify({ error: "Missing parameters." }) };
+        }
+
+        // Call the Sovereign Orchestrator
         const result = await poly.greenLogisticsOptimizer.optimizeGreenRoute(
             origin, 
             destination, 
@@ -14,11 +20,15 @@ export const handler = async (event) => {
 
         return {
             statusCode: 200,
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                "X-Sovereign-Status": "Verified"
+            },
             body: JSON.stringify(result),
         };
+
     } catch (error) {
-        console.error("PolyAPI Error:", error);
+        console.error("Orchestration Error:", error);
         return {
             statusCode: 500,
             body: JSON.stringify({ error: error.message })
