@@ -33,7 +33,7 @@ data "archive_file" "zip" {
 data "archive_file" "poly_sdk_zip" {
   type        = "zip"
   output_path = "${path.module}/poly_sdk_layer.zip"
-  source_dir  = "${path.cwd}/node_modules/polyapi"
+  source_dir  = "${path.cwd}/poly_layer"
 }
 
 resource "aws_lambda_layer_version" "poly_sdk" {

@@ -38,8 +38,10 @@ jobs:
           POLY_API_BASE_URL: https://eu1.polyapi.io
         run: |
           npm install polyapi@eu1
-          # Generate the SDK based on the env variables above
           npx poly generate
+          # Prepare the structure for AWS Lambda Layers
+          mkdir -p poly_layer/nodejs
+          cp -r node_modules poly_layer/nodejs/
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
