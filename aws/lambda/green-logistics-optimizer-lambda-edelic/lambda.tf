@@ -28,18 +28,16 @@ data "archive_file" "zip" {
   source_dir  = "${path.module}"
   excludes    = ["lambda.tf", "poly_sdk_layer.zip"] 
   output_path = "${path.module}/../../files/optimizer.zip"
-}
 
-data "archive_file" "poly_sdk_zip" {
-  type        = "zip"
-  output_path = "${path.module}/poly_sdk_layer.zip"
-  source_dir  = "${path.cwd}/layer_staging"
-}
-
-resource "aws_lambda_layer_version" "poly_sdk" {
-  filename            = data.archive_file.poly_sdk_zip.output_path
-  layer_name          = "poly_sdk_layer"
-  compatible_runtimes = ["nodejs20.x"]
+  # MANUALLY INJECT the generated SDK into the function zip
+  source {
+    content  = file("${path.cwd}/node_modules/polyapi/index.js")
+    filename = "node_modules/polyapi/index.js"
+  }
+  source {
+    content  = file("${path.cwd}/node_modules/polyapi/package.json")
+    filename = "node_modules/polyapi/package.json"
+  }
 }
 
 resource "aws_lambda_function" "optimizer" {
@@ -51,17 +49,13 @@ resource "aws_lambda_function" "optimizer" {
   filename         = data.archive_file.zip.output_path
   source_code_hash = data.archive_file.zip.output_base64sha256
 
-  layers = [aws_lambda_layer_version.poly_sdk.arn]
+  # REMOVE the layers = [...] line here to keep it simple
 
   environment {
     variables = {
       NODE_ENV     = "production"
       POLY_API_KEY = var.poly_api_key
     }
-  }
-
-  tags = {
-    aws_cert_developer = "emir.delic"
   }
 }
 
