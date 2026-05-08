@@ -6,6 +6,7 @@ on:
     paths:
       - 'aws/**'
       - 'main.tf'
+      - '.github/workflows/deploy.yml'
 
 concurrency:
   group: terraform
@@ -32,18 +33,12 @@ jobs:
 
       - name: Install PolyAPI SDK
         # This ensures the node_modules exist for Terraform to zip into the Layer
+        env:
+          POLY_API_KEY: ${{ secrets.POLY_API_KEY }}
+          POLY_API_BASE_URL: https://eu1.polyapi.io
         run: |
           npm install polyapi@eu1
-          # Create the required internal config directory
-          mkdir -p node_modules/polyapi/.poly
-          
-          # Inject the sovereign configuration directly into the PolyAPI config file
-          cat <<EOF > node_modules/polyapi/.poly/.config.env
-          POLY_API_KEY=${{ secrets.POLY_API_KEY }}
-          POLY_API_BASE_URL=https://eu1.polyapi.io
-          EOF
-          
-          # Now run generate with NO arguments
+          # Generate the SDK based on the env variables above
           npx poly generate
 
       - name: Setup Terraform
