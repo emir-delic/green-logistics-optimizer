@@ -31,14 +31,6 @@ resource "aws_iam_role_policy_attachment" "basic" {
 data "archive_file" "poly_sdk_zip" {
   type        = "zip"
   output_path = "${path.module}/poly_sdk_layer.zip"
-
-  # AWS Layers require node_modules to be inside a /nodejs/ directory
-  source {
-    content  = " " 
-    filename = "nodejs/keep" 
-  }
-
-  # This grabs your root polyapi installation
   source_dir = "${path.cwd}/node_modules/polyapi"
 }
 
