@@ -1,17 +1,24 @@
 import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
-// We know Lambda extracts the zip to /var/task
-const poly = require('/var/task/node_modules/polyapi/index.js');
+// This ensures the internal 'require' in polyapi finds the nested .poly folder
+const require = createRequire(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Resolve the absolute path to the library
+const polyapiPath = path.join(__dirname, 'node_modules', 'polyapi', 'index.js');
+const polyapi = require(polyapiPath);
 
 export const handler = async (event) => {
     try {
         const body = event.body ? JSON.parse(event.body) : {};
         const { origin, destination, weight_kg } = body;
 
-        // Use the default export if it exists, otherwise use the module itself
-        const sdk = poly.default || poly;
+        // The SDK might be nested under .default depending on how CJS was bundled
+        const sdk = polyapi.default || polyapi;
 
+        // Use the method from your specific generated SDK
         const result = await sdk.greenLogisticsOptimizer.optimizeGreenRoute(
             origin, 
             destination, 
@@ -24,10 +31,10 @@ export const handler = async (event) => {
             body: JSON.stringify(result),
         };
     } catch (error) {
-        console.error("PolyAPI Stack Trace:", error.stack);
+        console.error("PolyAPI Error Trace:", error.stack);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: error.message })
+            body: JSON.stringify({ error: error.message, stack: error.stack })
         };
     }
 };

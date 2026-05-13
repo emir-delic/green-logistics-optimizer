@@ -40,27 +40,32 @@ jobs:
           npm install polyapi@eu1
           npx poly generate
           
-          # 1. Create the base directory
-          mkdir -p build_dist/node_modules/polyapi
+          # 1. Clean build directory
+          mkdir -p build_dist/node_modules/polyapi/.poly/lib
           
           # 2. Copy the handler
           cp aws/lambda/green-logistics-optimizer-lambda-edelic/index.mjs build_dist/
           
-          # 3. Copy the main SDK files
+          # 3. Copy the base polyapi package (standard files)
           cp -r node_modules/polyapi/* build_dist/node_modules/polyapi/
           
-          # 4. FIXING THE NESTED STRUCTURE:
-          # We need to find where the .poly folder is and ensure it lands 
-          # exactly at build_dist/node_modules/polyapi/.poly/
-          # Using 'cp -a' ensures all hidden sub-directories like '/lib' are preserved.
+          # 4. THE BRUTE FORCE: 
+          # Instead of just copying the folder, we copy the CONTENTS 
+          # of the generated .poly folder into the expected /lib path.
+          # npx poly generate usually puts stuff in .poly/lib/ or just .poly/
           
-          POLY_SRC=$(find . -name ".poly" -type d -not -path "*build_dist*" | head -n 1)
-          echo "Found .poly at $POLY_SRC"
-          cp -a "$POLY_SRC/." build_dist/node_modules/polyapi/.poly/
+          if [ -d ".poly/lib" ]; then
+            cp -r .poly/lib/* build_dist/node_modules/polyapi/.poly/lib/
+          elif [ -d "node_modules/polyapi/.poly/lib" ]; then
+            cp -r node_modules/polyapi/.poly/lib/* build_dist/node_modules/polyapi/.poly/lib/
+          else
+            # If there is no 'lib' folder, copy everything into it anyway
+            # to satisfy the SDK's require('./poly/lib/index.js')
+            cp -r .poly/* build_dist/node_modules/polyapi/.poly/lib/ || true
+          fi
 
-          # 5. VERIFICATION: This must show the 'lib' folder
-          echo "Verifying internal logic structure:"
-          ls -R build_dist/node_modules/polyapi/.poly/
+          # 5. VERIFICATION (Check if index.js is physically at the problematic path)
+          ls -la build_dist/node_modules/polyapi/.poly/lib/index.js
           
           # 6. ZIP
           TS=$(date +%s)
