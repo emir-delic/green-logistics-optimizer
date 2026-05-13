@@ -34,13 +34,13 @@ data "archive_file" "zip" {
 resource "aws_lambda_function" "optimizer" {
   function_name = "green-logistics-optimizer-lambda-edelic"
   role          = aws_iam_role.lambda_role.arn
-  
-  # Change this from index.handler to index.handler (it looks for index.js by default)
   handler       = "index.handler" 
   runtime       = "nodejs20.x"
   
-  filename      = "${path.cwd}/optimizer.zip"
-  source_code_hash = filebase64sha256("${path.cwd}/optimizer.zip")
+  # ${path.root} points to the directory where the root module is
+  # This usually aligns with the root of your git repo in GitHub Actions
+  filename         = "${path.root}/optimizer.zip"
+  source_code_hash = filebase64sha256("${path.root}/optimizer.zip")
 
   environment {
     variables = {

@@ -31,8 +31,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install PolyAPI SDK
-        # This ensures the node_modules exist for Terraform to zip into the Layer
+      - name: Install PolyAPI SDK & Package Lambda
         env:
           POLY_API_KEY: ${{ secrets.POLY_API_KEY }}
           POLY_API_BASE_URL: https://eu1.polyapi.io
@@ -40,21 +39,23 @@ jobs:
           npm install polyapi@eu1
           npx poly generate
           
-          # Define the specific package directory inside the Lambda folder
-          TARGET_PKG_DIR="aws/lambda/green-logistics-optimizer-lambda-edelic/node_modules/polyapi"
-          mkdir -p "$TARGET_PKG_DIR"
-
-          # 1. Copy the library source
-          cp -r node_modules/polyapi/* "$TARGET_PKG_DIR/"
-
-          # 2. MOVE THE BRAIN TO THE CORRECT NESTED LOCATION
-          # Based on your logs, it's currently at ./node_modules/.poly
-          # It MUST land at .../node_modules/polyapi/.poly
-          cp -r node_modules/.poly "$TARGET_PKG_DIR/"
-
-          # 3. VERIFICATION
-          echo "Checking internal SDK structure:"
-          ls -la "$TARGET_PKG_DIR/.poly/lib/index.js"
+          # 1. Prepare a clean build folder
+          mkdir -p build_dist/node_modules/polyapi
+          
+          # 2. Copy your Lambda code (Note: changed to index.js)
+          cp aws/lambda/green-logistics-optimizer-lambda-edelic/index.js build_dist/
+          
+          # 3. Copy the SDK AND the hidden brain (.poly)
+          cp -r node_modules/polyapi/* build_dist/node_modules/polyapi/
+          cp -r node_modules/.poly build_dist/node_modules/polyapi/
+          
+          # 4. ZIP from INSIDE the folder, but output to the ROOT
+          cd build_dist
+          zip -r ../optimizer.zip .
+          cd ..
+          
+          # 5. Verification: This SHOULD now show the file in the root
+          ls -lh optimizer.zip
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
