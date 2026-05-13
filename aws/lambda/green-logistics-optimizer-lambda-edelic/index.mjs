@@ -1,24 +1,26 @@
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// This ensures the internal 'require' in polyapi finds the nested .poly folder
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Resolve the absolute path to the library
-const polyapiPath = path.join(__dirname, 'node_modules', 'polyapi', 'index.js');
-const polyapi = require(polyapiPath);
+/**
+ * BYPASS: We are pointing directly to the brain (.poly/lib/index.js)
+ * instead of requiring 'polyapi', which is where the resolution fails.
+ */
+const brainPath = path.join(__dirname, 'node_modules', 'polyapi', '.poly', 'lib', 'index.js');
+const poly = require(brainPath);
 
 export const handler = async (event) => {
     try {
         const body = event.body ? JSON.parse(event.body) : {};
         const { origin, destination, weight_kg } = body;
 
-        // The SDK might be nested under .default depending on how CJS was bundled
-        const sdk = polyapi.default || polyapi;
+        // Use the default export or the object itself
+        const sdk = poly.default || poly;
 
-        // Use the method from your specific generated SDK
+        // Directly call your orchestrator logic
         const result = await sdk.greenLogisticsOptimizer.optimizeGreenRoute(
             origin, 
             destination, 
@@ -31,10 +33,15 @@ export const handler = async (event) => {
             body: JSON.stringify(result),
         };
     } catch (error) {
-        console.error("PolyAPI Error Trace:", error.stack);
+        // Detailed logging to see exactly why it fails if it still does
+        console.error("Direct Path:", brainPath);
+        console.error("PolyAPI Handshake Error:", error.stack);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: error.message, stack: error.stack })
+            body: JSON.stringify({ 
+                error: error.message,
+                path_attempted: brainPath 
+            })
         };
     }
 };

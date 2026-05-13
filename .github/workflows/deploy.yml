@@ -40,34 +40,20 @@ jobs:
           npm install polyapi@eu1
           npx poly generate
           
-          # 1. Create the final target structure
-          mkdir -p build_dist/node_modules/polyapi/.poly/lib
+          # 1. Create a clean staging area
+          mkdir -p build_dist/node_modules/polyapi
           
-          # 2. Copy handler and base package
+          # 2. Copy handler
           cp aws/lambda/green-logistics-optimizer-lambda-edelic/index.mjs build_dist/
+          
+          # 3. Copy the package itself
           cp -r node_modules/polyapi/* build_dist/node_modules/polyapi/
           
-          # 3. LOCATE THE BRAIN:
-          # This finds the .poly directory wherever it was actually created
+          # 4. Find the generated .poly folder (wherever it is) and FORCE it into the destination
           GEN_POLY=$(find . -name ".poly" -type d -not -path "./build_dist*" | head -n 1)
+          cp -a "$GEN_POLY" build_dist/node_modules/polyapi/
           
-          if [ -z "$GEN_POLY" ]; then
-            echo "ERROR: .poly folder not found anywhere!"
-            ls -R # Dump everything to logs so we can see the structure
-            exit 1
-          fi
-          
-          echo "Found .poly at: $GEN_POLY"
-          
-          # 4. MOVE CONTENTS TO /lib
-          # We copy the files from inside the found .poly folder into the expected /lib
-          if [ -d "$GEN_POLY/lib" ]; then
-            cp -r "$GEN_POLY/lib/"* build_dist/node_modules/polyapi/.poly/lib/
-          else
-            cp -r "$GEN_POLY/"* build_dist/node_modules/polyapi/.poly/lib/
-          fi
-
-          # 5. FINAL VERIFY
+          # 5. ABSOLUTE VERIFICATION: The file MUST exist here
           ls -la build_dist/node_modules/polyapi/.poly/lib/index.js
           
           # 6. ZIP
