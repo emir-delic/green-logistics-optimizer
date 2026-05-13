@@ -39,23 +39,28 @@ jobs:
           npm install polyapi@eu1
           npx poly generate
           
-          # 1. Prepare a clean build folder
+          # 1. Create a clean build staging area
           mkdir -p build_dist/node_modules/polyapi
           
-          # 2. Copy your Lambda code (Note: changed to index.js)
-          cp aws/lambda/green-logistics-optimizer-lambda-edelic/index.js build_dist/
+          # 2. Copy the handler
+          cp aws/lambda/green-logistics-optimizer-lambda-edelic/index.mjs build_dist/
           
-          # 3. Copy the SDK AND the hidden brain (.poly)
-          cp -r node_modules/polyapi/* build_dist/node_modules/polyapi/
-          cp -r node_modules/.poly build_dist/node_modules/polyapi/
+          # 3. Copy the SDK logic and the hidden brain (.poly)
+          # Using -a to preserve hidden files and directory structure
+          cp -a node_modules/polyapi/. build_dist/node_modules/polyapi/
           
-          # 4. ZIP from INSIDE the folder, but output to the ROOT
+          # 4. Explicitly copy .poly if it was generated in the root node_modules
+          if [ -d "node_modules/.poly" ]; then
+            cp -a node_modules/.poly build_dist/node_modules/polyapi/
+          fi
+          
+          # 5. Create the ZIP from inside build_dist
           cd build_dist
           zip -r ../optimizer.zip .
           cd ..
           
-          # 5. Verification: This SHOULD now show the file in the root
-          ls -lh optimizer.zip
+          # 6. Verify the ZIP contains the brain
+          unzip -l optimizer.zip | grep ".poly"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -66,4 +71,4 @@ jobs:
         run: terraform init -reconfigure
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -input=false
+        run: terraform apply -auto-approve -input=false -var="poly_api_key=${{ secrets.POLY_API_KEY }}"

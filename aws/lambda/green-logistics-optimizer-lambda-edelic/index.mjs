@@ -1,20 +1,20 @@
-// Native CommonJS require
-const poly = require('./node_modules/polyapi/index.js');
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 
-exports.handler = async (event) => {
+// Native CJS require anchored to this file's location
+const polyapi = require('./node_modules/polyapi/index.js');
+const poly = polyapi.default || polyapi;
+
+export const handler = async (event) => {
     try {
         const body = event.body ? JSON.parse(event.body) : {};
         const { origin, destination, weight_kg } = body;
 
         if (!origin || !destination) {
-            return { 
-                statusCode: 400, 
-                body: JSON.stringify({ error: "Missing parameters." }) 
-            };
+            return { statusCode: 400, body: JSON.stringify({ error: "Missing parameters." }) };
         }
 
         // Trigger the PolyAPI Orchestrator
-        // The SDK will now find .poly/lib/index.js because it's using the same resolution engine
         const result = await poly.greenLogisticsOptimizer.optimizeGreenRoute(
             origin, 
             destination, 
@@ -23,7 +23,10 @@ exports.handler = async (event) => {
 
         return {
             statusCode: 200,
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                "X-Sovereign-Status": "Verified"
+            },
             body: JSON.stringify(result),
         };
 

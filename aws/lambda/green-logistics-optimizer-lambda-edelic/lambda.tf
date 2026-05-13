@@ -23,29 +23,26 @@ resource "aws_iam_role_policy_attachment" "basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-data "archive_file" "zip" {
-  type        = "zip"
-  source_dir  = "${path.module}"
-  # Do NOT use any excludes that might hit hidden files
-  excludes    = ["lambda.tf"] 
-  output_path = "${path.module}/../../files/optimizer.zip"
-}
-
 resource "aws_lambda_function" "optimizer" {
   function_name = "green-logistics-optimizer-lambda-edelic"
   role          = aws_iam_role.lambda_role.arn
+  
+  # Ensure the handler points to the .mjs file
   handler       = "index.handler" 
   runtime       = "nodejs20.x"
   
-  # ${path.root} points to the directory where the root module is
-  # This usually aligns with the root of your git repo in GitHub Actions
-  filename         = "${path.root}/optimizer.zip"
-  source_code_hash = filebase64sha256("${path.root}/optimizer.zip")
+  # Use the absolute path to the zip created in the root
+  filename         = "${path.cwd}/optimizer.zip"
+  source_code_hash = filebase64sha256("${path.cwd}/optimizer.zip")
 
   environment {
     variables = {
       POLY_API_KEY = var.poly_api_key
     }
+  }
+
+  tags = {
+    aws_cert_developer = "emir.delic"
   }
 }
 
