@@ -5,6 +5,10 @@ variable "poly_api_key" {
   type      = string
   sensitive = true
 }
+variable "lambda_zip_path" {
+  type    = string
+  default = "optimizer.zip"
+}
 
 resource "aws_iam_role" "lambda_role" {
   name = "green-logistics-optimizer-lambda-role-edelic"
@@ -24,16 +28,14 @@ resource "aws_iam_role_policy_attachment" "basic" {
 }
 
 resource "aws_lambda_function" "optimizer" {
-  function_name = "green-logistics-optimizer-lambda-edelic"
-  role          = aws_iam_role.lambda_role.arn
+  function_name    = "green-logistics-optimizer-lambda-edelic"
+  role             = aws_iam_role.lambda_role.arn
+  handler          = "index.handler" 
+  runtime          = "nodejs20.x"
   
-  # Ensure the handler points to the .mjs file
-  handler       = "index.handler" 
-  runtime       = "nodejs20.x"
-  
-  # Use the absolute path to the zip created in the root
-  filename         = "${path.cwd}/optimizer.zip"
-  source_code_hash = filebase64sha256("${path.cwd}/optimizer.zip")
+  # Use the variable passed from GitHub Actions
+  filename         = "${path.cwd}/${var.lambda_zip_path}"
+  source_code_hash = filebase64sha256("${path.cwd}/${var.lambda_zip_path}")
 
   environment {
     variables = {

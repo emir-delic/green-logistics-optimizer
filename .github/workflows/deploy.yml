@@ -32,6 +32,7 @@ jobs:
           node-version: '20'
 
       - name: Install PolyAPI SDK & Package Lambda
+        id: package # Added an ID to reference outputs
         env:
           POLY_API_KEY: ${{ secrets.POLY_API_KEY }}
           POLY_API_BASE_URL: https://eu1.polyapi.io
@@ -39,28 +40,23 @@ jobs:
           npm install polyapi@eu1
           npx poly generate
           
-          # 1. Create a clean build staging area
           mkdir -p build_dist/node_modules/polyapi
-          
-          # 2. Copy the handler
           cp aws/lambda/green-logistics-optimizer-lambda-edelic/index.mjs build_dist/
+          cp -r node_modules/polyapi/* build_dist/node_modules/polyapi/
+          find . -name ".poly" -type d -exec cp -pr {} build_dist/node_modules/polyapi/ \;
           
-          # 3. Copy the SDK logic and the hidden brain (.poly)
-          # Using -a to preserve hidden files and directory structure
-          cp -a node_modules/polyapi/. build_dist/node_modules/polyapi/
+          ls -la build_dist/node_modules/polyapi/.poly/lib/index.js || exit 1
           
-          # 4. Explicitly copy .poly if it was generated in the root node_modules
-          if [ -d "node_modules/.poly" ]; then
-            cp -a node_modules/.poly build_dist/node_modules/polyapi/
-          fi
+          # Generate timestamp and filename
+          TS=$(date +%s)
+          ZIP_NAME="optimizer_$TS.zip"
           
-          # 5. Create the ZIP from inside build_dist
           cd build_dist
-          zip -r ../optimizer.zip .
+          zip -r "../$ZIP_NAME" .
           cd ..
           
-          # 6. Verify the ZIP contains the brain
-          unzip -l optimizer.zip | grep ".poly"
+          # Pass the filename to the next steps
+          echo "zip_name=$ZIP_NAME" >> $GITHUB_OUTPUT
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -71,4 +67,8 @@ jobs:
         run: terraform init -reconfigure
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -input=false -var="poly_api_key=${{ secrets.POLY_API_KEY }}"
+        # Pass the zip_name variable to Terraform
+        run: |
+          terraform apply -auto-approve -input=false \
+            -var="poly_api_key=${{ secrets.POLY_API_KEY }}" \
+            -var="lambda_zip_path=${{ steps.package.outputs.zip_name }}"
