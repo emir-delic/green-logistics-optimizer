@@ -1,3 +1,4 @@
+# --- Module Variables ---
 variable "aws_account_id" {}
 variable "api_id" {}
 variable "root_resource_id" {}
@@ -5,11 +6,13 @@ variable "poly_api_key" {
   type      = string
   sensitive = true
 }
+
 variable "lambda_zip_path" {
-  type    = string
-  default = "optimizer.zip"
+  type        = string
+  description = "Dynamic zip name passed from root"
 }
 
+# --- IAM Role ---
 resource "aws_iam_role" "lambda_role" {
   name = "green-logistics-optimizer-lambda-role-edelic"
   assume_role_policy = jsonencode({
@@ -27,13 +30,14 @@ resource "aws_iam_role_policy_attachment" "basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# --- Lambda Function ---
 resource "aws_lambda_function" "optimizer" {
   function_name    = "green-logistics-optimizer-lambda-edelic"
   role             = aws_iam_role.lambda_role.arn
   handler          = "index.handler" 
   runtime          = "nodejs20.x"
   
-  # Use the variable passed from GitHub Actions
+  # Crucial: This uses the zip built in the GitHub Action
   filename         = "${path.cwd}/${var.lambda_zip_path}"
   source_code_hash = filebase64sha256("${path.cwd}/${var.lambda_zip_path}")
 
@@ -48,6 +52,7 @@ resource "aws_lambda_function" "optimizer" {
   }
 }
 
+# --- Permissions ---
 resource "aws_lambda_permission" "apigw_lambda" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
