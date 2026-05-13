@@ -1,17 +1,20 @@
-import polyapi from 'polyapi';
+// Native CommonJS require
+const poly = require('./node_modules/polyapi/index.js');
 
-const poly = polyapi.default || polyapi;
-
-export const handler = async (event) => {
+exports.handler = async (event) => {
     try {
         const body = event.body ? JSON.parse(event.body) : {};
         const { origin, destination, weight_kg } = body;
 
         if (!origin || !destination) {
-            return { statusCode: 400, body: JSON.stringify({ error: "Missing parameters." }) };
+            return { 
+                statusCode: 400, 
+                body: JSON.stringify({ error: "Missing parameters." }) 
+            };
         }
 
-        // Call the Sovereign Orchestrator
+        // Trigger the PolyAPI Orchestrator
+        // The SDK will now find .poly/lib/index.js because it's using the same resolution engine
         const result = await poly.greenLogisticsOptimizer.optimizeGreenRoute(
             origin, 
             destination, 
@@ -20,15 +23,12 @@ export const handler = async (event) => {
 
         return {
             statusCode: 200,
-            headers: { 
-                "Content-Type": "application/json",
-                "X-Sovereign-Status": "Verified"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(result),
         };
 
     } catch (error) {
-        console.error("Orchestration Error:", error);
+        console.error("PolyAPI Handshake Error:", error);
         return {
             statusCode: 500,
             body: JSON.stringify({ error: error.message })

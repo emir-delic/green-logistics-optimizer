@@ -32,23 +32,20 @@ data "archive_file" "zip" {
 }
 
 resource "aws_lambda_function" "optimizer" {
-  function_name    = "green-logistics-optimizer-lambda-edelic"
-  role             = aws_iam_role.lambda_role.arn
-  handler          = "index.handler"
-  runtime          = "nodejs20.x"
+  function_name = "green-logistics-optimizer-lambda-edelic"
+  role          = aws_iam_role.lambda_role.arn
   
-  filename         = data.archive_file.zip.output_path
-  source_code_hash = data.archive_file.zip.output_base64sha256
+  # Change this from index.handler to index.handler (it looks for index.js by default)
+  handler       = "index.handler" 
+  runtime       = "nodejs20.x"
+  
+  filename      = "${path.cwd}/optimizer.zip"
+  source_code_hash = filebase64sha256("${path.cwd}/optimizer.zip")
 
   environment {
     variables = {
-      NODE_ENV     = "production"
       POLY_API_KEY = var.poly_api_key
     }
-  }
-
-  tags = {
-    aws_cert_developer = "emir.delic"
   }
 }
 
