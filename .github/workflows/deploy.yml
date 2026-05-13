@@ -32,7 +32,7 @@ jobs:
           node-version: '20'
 
       - name: Install PolyAPI SDK & Package Lambda
-        id: package # Added an ID to reference outputs
+        id: package
         env:
           POLY_API_KEY: ${{ secrets.POLY_API_KEY }}
           POLY_API_BASE_URL: https://eu1.polyapi.io
@@ -40,22 +40,32 @@ jobs:
           npm install polyapi@eu1
           npx poly generate
           
+          # 1. Create the base directory
           mkdir -p build_dist/node_modules/polyapi
+          
+          # 2. Copy the handler
           cp aws/lambda/green-logistics-optimizer-lambda-edelic/index.mjs build_dist/
+          
+          # 3. Copy the main SDK files
           cp -r node_modules/polyapi/* build_dist/node_modules/polyapi/
-          find . -name ".poly" -type d -exec cp -pr {} build_dist/node_modules/polyapi/ \;
           
-          ls -la build_dist/node_modules/polyapi/.poly/lib/index.js || exit 1
+          # 4. FIXING THE NESTED STRUCTURE:
+          # We need to find where the .poly folder is and ensure it lands 
+          # exactly at build_dist/node_modules/polyapi/.poly/
+          # Using 'cp -a' ensures all hidden sub-directories like '/lib' are preserved.
           
-          # Generate timestamp and filename
+          POLY_SRC=$(find . -name ".poly" -type d -not -path "*build_dist*" | head -n 1)
+          echo "Found .poly at $POLY_SRC"
+          cp -a "$POLY_SRC/." build_dist/node_modules/polyapi/.poly/
+
+          # 5. VERIFICATION: This must show the 'lib' folder
+          echo "Verifying internal logic structure:"
+          ls -R build_dist/node_modules/polyapi/.poly/
+          
+          # 6. ZIP
           TS=$(date +%s)
           ZIP_NAME="optimizer_$TS.zip"
-          
-          cd build_dist
-          zip -r "../$ZIP_NAME" .
-          cd ..
-          
-          # Pass the filename to the next steps
+          cd build_dist && zip -r "../$ZIP_NAME" . && cd ..
           echo "zip_name=$ZIP_NAME" >> $GITHUB_OUTPUT
 
       - name: Setup Terraform

@@ -1,19 +1,18 @@
 import { createRequire } from 'node:module';
-import path from 'node:path';
 const require = createRequire(import.meta.url);
 
-// FORCE the path to the physical file in the Lambda environment
-const polyapiPath = path.resolve('/var/task/node_modules/polyapi/index.js');
-const polyapi = require(polyapiPath);
-const poly = polyapi.default || polyapi;
+// We know Lambda extracts the zip to /var/task
+const poly = require('/var/task/node_modules/polyapi/index.js');
 
 export const handler = async (event) => {
     try {
         const body = event.body ? JSON.parse(event.body) : {};
         const { origin, destination, weight_kg } = body;
 
-        // Call the Sovereign Orchestrator
-        const result = await poly.greenLogisticsOptimizer.optimizeGreenRoute(
+        // Use the default export if it exists, otherwise use the module itself
+        const sdk = poly.default || poly;
+
+        const result = await sdk.greenLogisticsOptimizer.optimizeGreenRoute(
             origin, 
             destination, 
             weight_kg || 5
@@ -25,7 +24,7 @@ export const handler = async (event) => {
             body: JSON.stringify(result),
         };
     } catch (error) {
-        console.error("PolyAPI Handshake Error:", error);
+        console.error("PolyAPI Stack Trace:", error.stack);
         return {
             statusCode: 500,
             body: JSON.stringify({ error: error.message })
