@@ -37,9 +37,18 @@ resource "aws_lambda_function" "optimizer" {
   handler          = "index.handler" 
   runtime          = "nodejs20.x"
   
-  # Crucial: This uses the zip built in the GitHub Action
   filename         = "${path.cwd}/${var.lambda_zip_path}"
   source_code_hash = filebase64sha256("${path.cwd}/${var.lambda_zip_path}")
+
+  # --- CRITICAL UPDATES ---
+  
+  # Increase memory to 512MB. 
+  # This doesn't just give you more RAM; it gives you a faster CPU.
+  memory_size = 512 
+
+  # Increase timeout to 30 seconds.
+  # Cold starts + PolyAPI logic might take 5-10 seconds the first time.
+  timeout = 30 
 
   environment {
     variables = {

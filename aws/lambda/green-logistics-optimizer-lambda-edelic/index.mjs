@@ -13,6 +13,7 @@ const brainPath = path.join(__dirname, 'node_modules', 'polyapi', '.poly', 'lib'
 const poly = require(brainPath);
 
 export const handler = async (event) => {
+    console.log("Lambda triggered with event:", JSON.stringify(event));
     try {
         const body = event.body ? JSON.parse(event.body) : {};
         const { origin, destination, weight_kg } = body;
