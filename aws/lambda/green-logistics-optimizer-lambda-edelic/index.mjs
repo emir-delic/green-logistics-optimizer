@@ -1,71 +1,48 @@
-import { randomUUID } from 'node:crypto';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * BYPASS: We are pointing directly to the brain (.poly/lib/index.js)
+ * instead of requiring 'polyapi', which is where the resolution fails.
+ */
+const brainPath = path.join(__dirname, 'node_modules', 'polyapi', '.poly', 'lib', 'index.js');
+const poly = require(brainPath);
 
 export const handler = async (event) => {
-    console.log("Processing request in EU-Central-1 (Frankfurt)...");
-    
+    console.log("Lambda triggered with event:", JSON.stringify(event));
     try {
-        // 1. Parse user input from API Gateway
-        // In Lambda Proxy Integration, the body comes as a string
         const body = event.body ? JSON.parse(event.body) : {};
         const { origin, destination, weight_kg } = body;
 
-        // Validation for the Demo
-        if (!origin || !destination) {
-            return {
-                statusCode: 400,
-                body: JSON.stringify({ error: "Missing origin or destination parameters." })
-            };
-        }
+        // Use the default export or the object itself
+        const sdk = poly.default || poly;
 
-        // 2. WORKFLOW STEP (Future): Fetch and Decrypt keys from OVHcloud KMS
-        // This ensures AWS never sees the raw API keys.
-        // const apiKeys = await fetchSovereignSecrets();
+        // Directly call your orchestrator logic
+        const result = await sdk.greenLogisticsOptimizer.optimizeGreenRoute(
+            origin, 
+            destination, 
+            weight_kg || 5
+        );
 
-        // 3. WORKFLOW STEP (Future): Initialize PolyAPI SDK
-        // The PolyRunner on Hetzner will handle the actual API handshakes.
-        
-        // 4. GENERATING THE SOVEREIGN PAYLOAD (Current Dummy Logic)
-        const payload = {
-            "route_id": `${randomUUID().toUpperCase()}`,
-            "timestamp": new Date().toISOString(),
-            "request_context": {
-                "origin": origin,
-                "destination": destination,
-                "parcel_weight": `${weight_kg || 5}kg`
-            },
-            "optimization": {
-                "fastest_path_co2": 180.2,
-                "greenest_path_co2": 142.8,
-                "savings_kg": 37.4
-            },
-            "logistics_summary": {
-                "cost": 42.50,
-                "carrier": "DHL",
-                "risk_factor": "Rain in Strasbourg"
-            },
-            "data_residency": {
-                "orchestrated_by": "PolyAPI (Hetzner/DE)",
-                "stored_in": "Aiven-PostgreSQL (Hetzner/DE)",
-                "jurisdiction": "EU-Sovereign Data Fortress",
-                "testing": "testing changes"
-            }
-        };
-
-        // 5. Final Response back to API Gateway
         return {
             statusCode: 200,
-            headers: { 
-                "Content-Type": "application/json",
-                "X-Data-Sovereignty": "Verified-EU-Boundary" 
-            },
-            body: JSON.stringify(payload),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(result),
         };
-
     } catch (error) {
-        console.error("Workflow Error:", error);
+        // Detailed logging to see exactly why it fails if it still does
+        console.error("Direct Path:", brainPath);
+        console.error("PolyAPI Handshake Error:", error.stack);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: "Internal Sovereign Processing Error" })
+            body: JSON.stringify({ 
+                error: error.message,
+                path_attempted: brainPath 
+            })
         };
     }
 };

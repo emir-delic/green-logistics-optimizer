@@ -1,67 +1,55 @@
-# Sovereign Green Logistics Optimizer
-API-first demonstration project that optimizes freight logistics across Europe. It calculates routes based on cost, weather risk, and carbon footprint while ensuring that sensitive business data remains entirely within **EU-owned infrastructure**, shielded from non-EU government access.
+# Sovereign Green Logistics Optimizer (EuroRoute-IO)
 
-Goal of this project is focused on both **API integration** and **sovereignty issues** caused by non-EU services. While still using services like AWS Lambda and API Gateway, they were left with the purpose to simulate "partial migration" from those services.
+The **Sovereign Green Logistics Optimizer** is an API-first orchestration platform designed to calculate freight routes across. It optimizes for cost, weather risk, and carbon footprint while ensuring that sensitive business data and cryptographic keys remain within **EU-owned infrastructure**, shielded from the US CLOUD Act.
+
+This project demonstrates a "Sovereign-by-Design" architecture, using **AWS** for stateless high-performance compute and **OVHcloud** as the secure Data Fortress.
 
 ---
 
 ### 1. Architecture: The Hybrid Sovereign Stack
-This stack uses **AWS** for high-performance, stateless execution and **PolyAPI** as the orchestration backbone. All sensitive data and secret management are offloaded to **EU-sovereign** providers to ensure 100% GDPR compliance and immunity from the US CLOUD Act.
 
-| Component | Service | Role | EU Sovereign Alternative (Data) |
+The stack is split between **Processing** (Stateless) and **Persistence** (Sovereign). This ensures that while we use the scale of AWS, no sensitive data is stored on US-owned infrastructure.
+
+| Component | Service | Role | Provider / Jurisdiction |
 | :--- | :--- | :--- | :--- |
-| **Secrets** | **OVHcloud KMS** | **Hardware-backed Key Management** | **Managed KMS (France)** |
-| **Orchestrator** | **PolyAPI** | Unified SDK for all 3rd-party APIs | **Self-hosted Poly Runner** (on Hetzner) |
-| **Compute** | **AWS Lambda** | Stateless business logic (EU regions) | *N/A (Stateless)* |
-| **Gateway** | **AWS API Gateway** | Entry point for client requests | *N/A (Stateless)* |
-| **Database** | **Aiven / PostgreSQL** | Persistent storage of shipment data | **Hetzner Managed DB** (Germany) |
-| **Cache** | **UpCloud / Redis** | Real-time tracking & session data | **Exoscale DBaaS** (Switzerland/Austria) |
-| **Storage** | **Scaleway S3** | Documentation, logs, and blobs | **OVHcloud Object Storage** (France) |
+| **Secrets/KMS** | **OVHcloud KMS** | Hardware-backed Key Management | **OVHcloud (France)** |
+| **Orchestrator** | **PolyAPI** | Unified SDK & API Governance | **OVH Managed Kubernetes** |
+| **Compute** | **AWS Lambda** | Stateless business logic | **AWS (Germany)** |
+| **Gateway** | **AWS API Gateway** | Stateless entry point | **AWS (Germany)** |
+| **Database** | **OVH Managed PostgreSQL** | Persistent shipment & route data | **OVHcloud (France)** |
+| **Cache** | **OVH Managed Redis** | Real-time tracking & session cache | **OVHcloud (France)** |
+| **Storage/Logs** | **OVH Object Storage** | Secure documentation and logs | **OVHcloud (France)** |
 
 ---
 
 ### 2. Workflow: The Sovereign Orchestration Flow
-The following flow describes how **OVHcloud KMS** secures the integration while PolyAPI simplifies the execution.
 
-1.  **Request:** A user sends a shipment request to the **AWS API Gateway**.
-2.  **Secret Retrieval:** **AWS Lambda** authenticates with **OVHcloud KMS** to retrieve the encrypted API keys for the logistics providers.
-3.  **Orchestration (PolyAPI Layer):** Lambda passes the credentials into the **PolyAPI Unified SDK**. PolyAPI then concurrently pings:
-    * **Logistics APIs:** DHL/FedEx for real-time pricing.
-    * **Carbon APIs:** Climatiq for $CO_2$ impact.
-    * **Weather APIs:** OpenWeather for transit risks.
-    * **Maps APIs:** Mapbox for distance/ETAs.
-4.  **Transformation:** PolyAPI maps these different data formats into a single, unified **Project Schema**.
-5.  **Sovereign Storage:** The Lambda takes the final payload and stores it in **Aiven (EU)**.
-6.  **Response:** The user receives a finalized, eco-optimized shipping route.
+1.  **Request:** A client sends a request to the `green-logistics-optimizer-gateway-edelic`.
+2.  **Secret Retrieval:** The **AWS Lambda** authenticates with **OVHcloud KMS** to retrieve encrypted credentials for external APIs.
+3.  **Orchestration:** Lambda executes the **PolyAPI Unified SDK**. The orchestration logic runs on your **OVH Managed Kubernetes** cluster, which concurrent-calls:
+    * **Logistics:** DHL for real-time rates.
+    * **Environment:** Climatiq for $CO_2$ footprint.
+    * **Context:** OpenWeather & Mapbox for risks and ETAs.
+4.  **Sovereign Persistence:** The final payload is stored in **OVH Managed PostgreSQL** and cached in **OVH Managed Redis**.
+5.  **Response:** A finalized, eco-optimized JSON response is returned to the user.
 
 ---
 
-### 3. Data Sovereignty Implementation Details
-To remain immune to the US CLOUD Act and fully GDPR compliant, the project implements these specific guardrails:
+### 3. Data Sovereignty Guardrails
 
-* **Jurisdictional Isolation:** We use AWS purely for **processing** (in `eu-central-1`). All "State" (databases, caches, and logs) is managed by EU-headquartered companies.
-* **Sovereign Key Management:** Instead of AWS Secrets Manager or Vaults with US parents, we use **OVHcloud KMS**. This ensures the cryptographic keys used to access shipping APIs are never stored or processed by a US entity.
-* **The "Runner" Strategy:** We deploy a **PolyAPI Runner** on a German **Hetzner** instance. This ensures the actual data transit from the external APIs happens on EU-owned "metal" before the result is passed to the stateless Lambda.
+* **Jurisdictional Isolation:** AWS is used strictly for stateless processing in the `eu-central-1` region. All persistent data (State) is managed by **OVHcloud**, a European-headquartered company immune to the US CLOUD Act.
+* **The "Sovereign Brain":** By hosting the **PolyAPI Orchestration Layer** on **OVH Managed Kubernetes**, the application's core logic and API mapping stay on EU-owned metal.
+* **Infrastructure-as-Code (IaC):** The entire stack is deployed via Terraform, ensuring the sovereign boundaries are enforced programmatically.
 
 ---
 
-### 4. Scaling Options for the Future
-This project is designed to scale horizontally and vertically:
+### 4. Setup & Deployment
 
-* **API Expansion:** Easily add **Stripe** for payments or **SendGrid** for notifications by simply "cataloging" them in PolyAPI. No need to install new libraries in your Lambda.
-* **Geographic Expansion:** Deploy your database in different EU countries (e.g., **Aiven** in France or Italy) to comply with specific local data residency laws.
-* **IoT Integration:** Scale into "Real-time Tracking" by integrating **MQTT/IoT APIs** via PolyAPI webhooks to monitor temperature-sensitive cargo.
+#### Prerequisites
+* **AWS S3 Bucket:** Ensure `green-logistics-optimizer-state-storage-edelic` is created in `eu-central-1` to store remote state.
 
+---
 
-### Project setup
-1. Install terraform (Mac)
-```
-brew tap hashicorp/tap
-
-brew install hashicorp/tap/terraform
-```
-
-2. Initialize terraform
-```
-terraform init
-```
+### 5. Scaling & Future Proofing
+* **Provider Agility:** The PolyAPI layer allows for swapping AWS Lambda for **OVHcloud Serverless Functions** with zero changes to the integration logic.
+* **API Expansion:** New logistics providers can be "cataloged" into the PolyAPI layer without modifying the core Lambda deployment.

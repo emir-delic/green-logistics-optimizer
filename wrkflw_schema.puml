@@ -1,33 +1,29 @@
 @startuml
-' Use simple skinparams for better compatibility with older JAR versions
 skinparam Shadowing false
 skinparam MonospacedFont "Courier"
 
-title EuroRoute-IO: Sovereign Green Logistics Architecture
+title EuroRoute-IO: PolyAPI eu1 Sovereign Integration
 
 actor "User" as User
 
-box "AWS Cloud (Stateless / US)" #FFF3E0
+box "AWS Cloud (Stateless / DE)" #FFF3E0
     participant "API Gateway" as AGW
-    participant "Lambda (EU-Region)" as Lambda
+    participant "Lambda (eu-central-1)" as Lambda
 end box
 
-box "OVHcloud (Sovereign / FR)" #E8F5E9
+box "PolyAPI Cloud (eu1.polyapi.io)" #F3E5F5
+    participant "PolyAPI eu1 Control Plane" as Control
+    participant "PolyAPI eu1 Execution" as Exec
+end box
+
+box "OVHcloud (Sovereign Data Fortress / FR)" #E8F5E9
     participant "OVH KMS" as KMS
-    participant "OVH S3 Logs" as Logs
-end box
-
-box "PolyAPI / Hetzner" #F3E5F5
-    participant "PolyRunner" as Poly
+    database "Managed PostgreSQL" as DB
+    database "Managed Redis" as Cache
 end box
 
 box "External APIs" #ECEFF1
-    collections "DHL/Climatiq" as APIs
-end box
-
-box "EU Data Fortress" #E1F5FE
-    database "Aiven DB (DE)" as DB
-    database "UpCloud Redis" as Cache
+    collections "3rd-Party APIs" as APIs
 end box
 
 ' Flow Logic
@@ -36,17 +32,15 @@ AGW -> Lambda : 2. Trigger
 Lambda -> KMS : 3. Decrypt Keys
 KMS -> Lambda : 4. Sovereign Keys
 
-Lambda -> Poly : 5. Orchestrate
-Poly -> APIs : 6. API Calls
-APIs -> Poly : 7. Raw Data
-Poly -> Poly : 8. Mapping
+' Orchestration moves to PolyAPI eu1
+Lambda -> Exec : 5. Call Unified SDK (eu1)
+Exec -> APIs : 6. Concurrent API Calls
+APIs -> Exec : 7. Raw Data
+Exec -> Exec : 8. Schema Mapping & Transformation
 
-Poly -> Lambda : 9. Unified Payload
-Lambda -> DB : 10. Save Data
-Lambda -> Cache : 11. Cache Session
-Lambda -> Logs : 12. Write Logs
+Exec -> Lambda : 9. Unified Response Payload
+Lambda -> DB : 10. Save Shipment Data
+Lambda -> Cache : 11. Real-time Session Update
 
-DB -> Lambda : 13. Confirm
-Lambda -> User : 14. Response JSON
-
+Lambda -> User : 12. Final Response
 @enduml

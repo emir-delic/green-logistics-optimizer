@@ -1,9 +1,18 @@
-# Variables received from the root main.tf
+# --- Module Variables ---
 variable "aws_account_id" {}
 variable "api_id" {}
 variable "root_resource_id" {}
+variable "poly_api_key" {
+  type      = string
+  sensitive = true
+}
 
-# 1. IAM Role for THIS specific function
+variable "lambda_zip_path" {
+  type        = string
+  description = "Dynamic zip name passed from root"
+}
+
+# --- IAM Role ---
 resource "aws_iam_role" "lambda_role" {
   name = "green-logistics-optimizer-lambda-role-edelic"
   assume_role_policy = jsonencode({
@@ -16,33 +25,34 @@ resource "aws_iam_role" "lambda_role" {
   })
 }
 
-# 2. Attach basic execution (Logging) for audit trails
 resource "aws_iam_role_policy_attachment" "basic" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# 3. Zip and Function Definition
-data "archive_file" "zip" {
-  type        = "zip"
-  source_dir  = "${path.module}"
-  # Exclude terraform files from the zip to keep the Lambda clean
-  excludes    = ["lambda.tf"] 
-  output_path = "${path.module}/../../files/optimizer.zip"
-}
-
+# --- Lambda Function ---
 resource "aws_lambda_function" "optimizer" {
-  function_name = "green-logistics-optimizer-lambda-edelic"
-  role          = aws_iam_role.lambda_role.arn
-  handler       = "index.handler"
-  runtime       = "nodejs20.x"
-  filename      = data.archive_file.zip.output_path
-  source_code_hash = data.archive_file.zip.output_base64sha256
+  function_name    = "green-logistics-optimizer-lambda-edelic"
+  role             = aws_iam_role.lambda_role.arn
+  handler          = "index.handler" 
+  runtime          = "nodejs20.x"
+  
+  filename         = "${path.cwd}/${var.lambda_zip_path}"
+  source_code_hash = filebase64sha256("${path.cwd}/${var.lambda_zip_path}")
 
-  # Ensure processing stays in EU-Central-1
+  # --- CRITICAL UPDATES ---
+  
+  # Increase memory to 512MB. 
+  # This doesn't just give you more RAM; it gives you a faster CPU.
+  memory_size = 512 
+
+  # Increase timeout to 30 seconds.
+  # Cold starts + PolyAPI logic might take 5-10 seconds the first time.
+  timeout = 30 
+
   environment {
     variables = {
-      NODE_ENV = "production"
+      POLY_API_KEY = var.poly_api_key
     }
   }
 
@@ -51,18 +61,15 @@ resource "aws_lambda_function" "optimizer" {
   }
 }
 
-# 4. Grant API Gateway permission to invoke this Lambda
+# --- Permissions ---
 resource "aws_lambda_permission" "apigw_lambda" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.optimizer.function_name
   principal     = "apigateway.amazonaws.com"
-
-  # FIX: Reference the variable var.api_id instead of the resource
-  source_arn = "arn:aws:execute-api:eu-central-1:${var.aws_account_id}:${var.api_id}/*/*"
+  source_arn    = "arn:aws:execute-api:eu-central-1:${var.aws_account_id}:${var.api_id}/*/*"
 }
 
-# 5. OUTPUT: Export the ARN so the root main.tf can pass it to the API module
 output "invoke_arn" {
   value = aws_lambda_function.optimizer.invoke_arn
 }

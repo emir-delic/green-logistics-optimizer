@@ -2,10 +2,11 @@ name: Sovereign Stack Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
     paths:
       - 'aws/**'
       - 'main.tf'
+      - '.github/workflows/deploy.yml'
 
 concurrency:
   group: terraform
@@ -19,10 +20,56 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: eu-central-1
       TF_VAR_aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+      TF_VAR_poly_api_key: ${{ secrets.POLY_API_KEY }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install PolyAPI SDK & Package Lambda
+        id: package
+        env:
+          POLY_API_KEY: ${{ secrets.POLY_API_KEY }}
+          POLY_API_BASE_URL: https://eu1.polyapi.io
+        run: |
+          # 1. Install all dependencies (polyapi + anything it needs like lodash)
+          npm install polyapi@eu1
+          npx poly generate
+          
+          # 2. Prepare clean staging area
+          mkdir -p build_dist
+          
+          # 3. Copy handler
+          cp aws/lambda/green-logistics-optimizer-lambda-edelic/index.mjs build_dist/
+          
+          # 4. Copy the ENTIRE node_modules (The General Solution)
+          # This ensures lodash, uuid, and other sub-deps are included
+          cp -r node_modules build_dist/
+          
+          # 5. Ensure the .poly brain is correctly nested inside the SDK folder
+          # In some versions, 'poly generate' puts it in root node_modules/.poly
+          GEN_POLY=$(find node_modules -name ".poly" -type d | head -n 1)
+          echo "Found generated .poly at: $GEN_POLY"
+          
+          # If .poly isn't already inside node_modules/polyapi, move it there
+          if [[ "$GEN_POLY" != *"node_modules/polyapi/.poly"* ]]; then
+            mkdir -p build_dist/node_modules/polyapi/.poly
+            cp -af "$GEN_POLY/." build_dist/node_modules/polyapi/.poly/
+          fi
+          
+          # 6. ZIP everything in build_dist
+          TS=$(date +%s)
+          ZIP_NAME="optimizer_$TS.zip"
+          cd build_dist
+          zip -r "../$ZIP_NAME" .
+          cd ..
+          
+          echo "zip_name=$ZIP_NAME" >> $GITHUB_OUTPUT
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -33,4 +80,8 @@ jobs:
         run: terraform init -reconfigure
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -input=false
+        # Pass the zip_name variable to Terraform
+        run: |
+          terraform apply -auto-approve -input=false \
+            -var="poly_api_key=${{ secrets.POLY_API_KEY }}" \
+            -var="lambda_zip_path=${{ steps.package.outputs.zip_name }}"

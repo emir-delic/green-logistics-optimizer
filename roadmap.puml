@@ -2,28 +2,23 @@
 skinparam monochrome true
 skinparam shadowing false
 
-title EuroRoute-IO Implementation Roadmap (Sequence View)
+title Roadmap: PolyAPI eu1 Integration
 
-== Phase 1: Foundation ==
-Note over "Storage": 1.1 Provision Aiven PostgreSQL (DE)
-Note over "Storage": 1.2 Setup UpCloud Redis (FI)
-Note over "Storage": 1.3 Configure Scaleway S3 (FR)
+== Phase 1: Persistence ==
+Note over "OVHcloud": 1.1 Provision Managed PostgreSQL & Redis (FR)
+Note over "OVHcloud": 1.2 Setup KMS for Sovereign Key Storage
 
-== Phase 2: Security ==
-Note over "Security": 2.1 Initialize OVHcloud KMS
-Note over "Security": 2.2 Encrypt Provider API Keys
+== Phase 2: PolyAPI eu1 Setup ==
+Note over "PolyAPI": 2.1 Register Project on eu1.polyapi.io
+Note over "PolyAPI": 2.2 Catalog Logistics/Carbon/Weather APIs
+Note over "PolyAPI": 2.3 Generate Unified SDK targeting EU1
 
-== Phase 3: Orchestration ==
-Note over "PolyAPI": 3.1 Catalog Logistics/Carbon APIs
-Note over "PolyAPI": 3.2 Deploy PolyRunner on Hetzner
-Note over "PolyAPI": 3.3 Generate Unified SDK
+== Phase 3: Bridge Development ==
+"AWS Lambda" -> "PolyAPI eu1": Initialize SDK with EU1 environment keys
+"AWS Lambda" -> "OVHcloud": Connect Persistence Layer
+"AWS Lambda" -> "PolyAPI eu1": Test end-to-end Orchestration
 
-== Phase 4: Development ==
-"AWS Lambda" -> "OVH KMS": Fetch/Decrypt Keys
-"AWS Lambda" -> "PolyAPI": Initialize SDK
-"AWS Lambda" -> "Aiven DB": Implement Persistence
-
-== Phase 5: Launch ==
-Note over "UI": 5.1 Build React Dashboard
-Note over "Audit": 5.3 Compliance & Residency Audit
+== Phase 4: Compliance ==
+Note over "Audit": 4.1 Verify Data Transit remains within EU (PolyAPI eu1)
+Note over "Audit": 4.2 Validate US CLOUD Act Isolation
 @enduml
