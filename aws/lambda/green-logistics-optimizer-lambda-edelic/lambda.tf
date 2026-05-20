@@ -48,7 +48,7 @@ resource "aws_lambda_function" "optimizer" {
 
   # Increase timeout to 30 seconds.
   # Cold starts + PolyAPI logic might take 5-10 seconds the first time.
-  timeout = 90 
+  timeout = 180 
 
   environment {
     variables = {
