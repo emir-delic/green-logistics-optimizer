@@ -5,6 +5,8 @@
 declare const poly: any;
 
 export async function optimizeGreenRoute(origin: string, destination: string) {
+  console.log(origin, destination);
+  
   try {
     // Parallel Execution via PolyAPI Unified SDK under the greenLogisticsOptimizer context
     const [rates, carbon, weather, maps] = await Promise.all([

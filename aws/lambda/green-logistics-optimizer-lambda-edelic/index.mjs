@@ -19,6 +19,7 @@ export const handler = async (event) => {
 
         // Use the default export or the object itself
         const sdk = poly.default || poly;
+        console.log(body)
 
         // Directly call your orchestrator logic
         const result = await sdk.greenLogisticsOptimizer.optimizeGreenRoute(
