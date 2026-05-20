@@ -27,6 +27,7 @@ export const handler = async (event) => {
             destination, 
             weight_kg || 5
         );
+        console.log(result);
 
         return {
             statusCode: 200,
